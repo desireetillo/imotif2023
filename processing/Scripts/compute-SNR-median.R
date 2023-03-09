@@ -1,8 +1,21 @@
+## ---------------------------
+##
+## Script name: compute-SNR-median.R
+##
+## Computes median/mean SNR635 for each test sequence on iMotif array
+## Generates histograms of SNR635 distribution across sequence classes
+##
+## Author: Desiree Tillo
+##
+## Date edited: 2023-03-09
+##
+## Email: desiree.tillo@nih.gov
+##
+
 library(dplyr)
 library(ggplot2)
+
 # read in data
-
-
 args = commandArgs(trailingOnly=TRUE)
 # DEBUG
 #file<-"block.1.Mitoxantrone_Array.txt"
