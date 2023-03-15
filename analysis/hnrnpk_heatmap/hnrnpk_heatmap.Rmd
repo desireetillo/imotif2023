@@ -1,0 +1,79 @@
+---
+title: "imotif_analysis_hnrnpk"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    pdf_print: paged
+    toc: yes
+    toc_depth: '3'
+    code_folding: hide
+  html_notebook:
+    toc: yes
+    toc_depth: '3'
+    code_folding: hide
+---
+
+# Libraries
+
+```{r}
+library(dplyr)
+library(purrr)
+library(readr)
+```
+
+
+# read data
+
+```{r}
+myfile<-'../data/imotif_array_v2.median_SNR.avg_reps.tab'
+all_data<-read.csv(myfile,sep="\t")
+```
+
+
+# heatmap
+
+```{r fig.height=10}
+suppressMessages(library(ComplexHeatmap))
+library(viridis)
+data_mat<-as.matrix(all_data[,12:19])
+
+rownames(data_mat)<-all_data$New_ID
+# get some colors
+mycolors<-RColorBrewer::brewer.pal(10,"Set3")
+names(mycolors) <- sort(unique(all_data$SeqClass))
+
+row_ha = rowAnnotation(Sequence_class=all_data$SeqClass,col=list(Sequence_class=mycolors))
+Heatmap(data_mat, 
+        cluster_rows = T, 
+        cluster_columns = F, 
+        name="SNR", 
+        show_column_dend = T , 
+        show_row_dend = F, 
+        show_column_names = T , 
+        show_row_names =F,
+        right_annotation = row_ha,
+        #   row_split = mdata$SeqClass,
+        column_title ="", 
+        col=magma(100),
+        #col_fun,
+        row_title_rot = 0)
+
+pdf('figs/hnrnpk_heatmap.pdf', width=8,height=10)
+Heatmap(data_mat, 
+        cluster_rows = T, 
+        cluster_columns = F, 
+        name="SNR", 
+        show_column_dend = T , 
+        show_row_dend = F, 
+        show_column_names = T , 
+        show_row_names =F,  
+        right_annotation = row_ha,
+        column_title ="", 
+        #  col = col_fun,
+        col=magma(100),
+        row_title_rot = 0)
+
+
+dev.off()
+```
+

@@ -1,0 +1,56 @@
+---
+title: "imotif analysis:  ridgeplots with selected proteins/experiments"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    pdf_print: paged
+    toc: yes
+    toc_depth: '3'
+    code_folding: hide
+
+---
+
+# Libraries
+
+```{r}
+
+library(ggridges)
+library(ggplot2)
+```
+
+
+# read data
+
+```{r}
+myfile<-'../data/imotif_array_v2.median_SNR.avg_reps.tab'
+all_data<-read.csv(myfile,sep="\t")
+```
+
+# plot ridgeplots, selected data
+
+```{r fig.height=5, fig.width=8}
+
+mycolors<-RColorBrewer::brewer.pal(10,"Set3")
+names(mycolors) <- sort(unique(all_data$SeqClass))
+
+
+selected<-c("New_ID","SeqClass","hnRNPK","hnRNPLL","iMab100nM_6.5_40")
+mysubset<-all_data[,selected]
+
+
+rdata<-tidyr::pivot_longer(mysubset,3:length(mysubset),names_to ="Sample",values_to= "SNR") 
+# get some colors
+mycolors<-RColorBrewer::brewer.pal(10,"Set3")
+names(mycolors) <- sort(unique(all_data$SeqClass))
+ 
+rdata<-tidyr::pivot_longer(mysubset,3:length(mysubset),names_to ="Sample",values_to= "SNR") 
+rdata$SeqClass<-factor(rdata$SeqClass, levels = rev(c("neg_control","2_Cs","3_Cs","4_Cs","5_10_Cs","pos_control","non_G4","G4", "telomere","centromere")))
+
+
+ggplot(rdata, aes(x = SNR, y = SeqClass, fill = SeqClass)) +
+  geom_density_ridges() + 
+  scale_fill_manual(values=mycolors)+
+  theme_ridges() + 
+  theme(legend.position = "none") +
+  facet_wrap(~Sample,nrow=1, scales="free_x")
+```

@@ -1,0 +1,214 @@
+---
+title: "imotif loop length analysis"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '5'
+    code_folding: hide
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+
+# Analysis question: 
+
+how does loop length correlate with SNR?
+
+```{r loadlibraries}
+library(dplyr)
+library(purrr)
+library(readr)
+library(stringr)
+library(ggplot2)
+library(viridis)
+calc_gc_content <- function(sq) {
+  num_g <- str_count(sq, "G")
+  num_c <- str_count(sq, "C")
+  gc_content <- (num_g + num_c) / str_length(sq) 
+  #print(gc_content)
+  return(gc_content)
+ }
+```
+
+
+
+```{r loaddata}
+file<-'imotif_array_v2.median_SNR.with.hnRNPA1.avg_reps.genes.loops.tab'
+data<-read.csv(file, sep='\t')
+prctcutoff<-10
+
+data$length_loop1<-nchar(data$loop1)
+data$length_loop2<-nchar(data$loop2)
+data$length_loop3<-nchar(data$loop3)
+
+for (i in 1:nrow(data)){
+  data$gc_loop1[i] <- calc_gc_content(data$loop1[i])
+  data$gc_loop2[i] <- calc_gc_content(data$loop2[i])
+  data$gc_loop3[i] <- calc_gc_content(data$loop3[i])
+}
+
+
+```
+
+
+# Boxplots 
+
+## loop lengths
+```{r fig.height=8}
+
+library(ComplexHeatmap)
+library(circlize)
+
+groups <-c('2_Cs','3_Cs','4_Cs','5_10_Cs')
+
+
+for(group in groups){
+  tmp2<-tmp[which(tmp$SeqClass==group),]
+  
+  # bin lengths
+  tmp2$length_loop1[tmp2$length_loop1>9] <- paste0("\u2265","10")
+  tmp2$length_loop2[tmp2$length_loop2>9] <- paste0("\u2265","10")
+  tmp2$length_loop3[tmp2$length_loop3>9] <- paste0("\u2265","10")
+  
+  tmp2$length_loop1<-factor(tmp2$length_loop1,levels=c(seq(1,9), paste0("\u2265","10")))
+  tmp2$length_loop2<-factor(tmp2$length_loop2,levels=c(seq(1,9), paste0("\u2265","10")))
+  tmp2$length_loop3<-factor(tmp2$length_loop3,levels=c(seq(1,9), paste0("\u2265","10")))
+  mat1<-tmp2[,c("length_loop1","length_loop2","length_loop3","iMab100nM_6.5_40","hnRNPK_rep", "hnRNPLL_rep", "ASF_rep","Mx2nM_6.5_40")]
+  
+  # rename experiments
+  names(mat1)[4:ncol(mat1)] <- c('iMab','hnRNPK','hnRNPLL','ASF/SF1','Mitoxantrone')
+  
+  plot_data<-tidyr::pivot_longer(mat1,cols=c(4:ncol(mat1)),
+                                 names_to =c("experiment"),
+                                 values_to="SNR")
+  
+  plot_data<-tidyr::pivot_longer(plot_data,cols=c(1:3),
+                                 names_to =c("loop_number"),
+                                 values_to="loop_length")
+  
+  
+  p<-ggplot(plot_data, aes(x=loop_length,y=SNR,group=loop_length,color=loop_length)) + 
+    geom_boxplot() +
+    theme_bw() +
+    facet_grid(cols=vars(loop_number),rows=vars(experiment),scale='free_y') + 
+    ggtitle(group) +
+  #  scale_color_viridis(option="magma",  discrete = T)
+    scale_color_viridis( discrete = T) 
+
+
+  print(p)
+}
+
+
+```
+
+
+## loop gc content 
+```{r fig.height=8}
+
+
+for(group in groups){
+  tmp2<-tmp[which(tmp$SeqClass==group),]
+  
+  # round gc content
+  tmp2$gc_loop1 <- round(tmp2$gc_loop1,1)
+  tmp2$gc_loop2 <-round(tmp2$gc_loop2,1)
+  tmp2$gc_loop3<-round(tmp2$gc_loop3,1)
+  tmp2$gc_loop1<-factor(tmp2$gc_loop1,levels=c(seq(0,1,0.1)))
+  tmp2$gc_loop2<-factor(tmp2$gc_loop2,levels=c(seq(0,1,0.1)))
+  tmp2$gc_loop3<-factor(tmp2$gc_loop3,levels=c(seq(0,1,0.1)))
+  mat1<-tmp2[,c("gc_loop1","gc_loop2","gc_loop3","iMab100nM_6.5_40","hnRNPK_rep", "hnRNPLL_rep", "ASF_rep","Mx2nM_6.5_40")]
+  
+  plot_data<-tidyr::pivot_longer(mat1,cols=c(4:ncol(mat1)),
+                                 names_to =c("experiment"),
+                                 values_to="SNR")
+  
+  plot_data<-tidyr::pivot_longer(plot_data,cols=c(1:3),
+                                 names_to =c("loop_number"),
+                                 values_to="gc")
+  
+  
+  p<-ggplot(plot_data, aes(x=gc,y=SNR,group=gc,color=gc)) + 
+    geom_boxplot() +
+    theme_bw() +
+    facet_grid(cols=vars(loop_number),rows=vars(experiment),scale='free_y') + 
+    ggtitle(group)+
+        scale_color_viridis( discrete = T)
+
+  print(p)
+}
+
+
+```
+
+
+
+
+# Density 
+
+## loop lengths
+```{r fig.height=8}
+
+groups <-c('2_Cs','3_Cs','4_Cs','5_10_Cs')
+
+
+for(group in groups){
+ 
+  plot_data<-tidyr::pivot_longer(mat1,cols=c(4:ncol(mat1)),
+                                 names_to =c("experiment"),
+                                 values_to="SNR")
+  
+  plot_data<-tidyr::pivot_longer(plot_data,cols=c(1:3),
+                                 names_to =c("loop_number"),
+                                 values_to="loop_length")
+  
+  
+  p<-ggplot(plot_data, aes(x=SNR,group=loop_length,color=loop_length)) + 
+    geom_density()+
+    theme_bw() +
+    facet_grid(cols=vars(loop_number),rows=vars(experiment),scale='free') + 
+    ggtitle(group) +
+  #  scale_color_viridis(option="magma",  discrete = T)
+    scale_color_viridis( discrete = T)
+
+  print(p)
+}
+
+
+```
+
+
+## loop gc content 
+
+```{r fig.height=8}
+
+
+
+for(group in groups){
+
+  plot_data<-tidyr::pivot_longer(mat1,cols=c(4:ncol(mat1)),
+                                 names_to =c("experiment"),
+                                 values_to="SNR")
+  
+  plot_data<-tidyr::pivot_longer(plot_data,cols=c(1:3),
+                                 names_to =c("loop_number"),
+                                 values_to="gc")
+  
+  p<-ggplot(plot_data, aes(x=SNR,group=gc,color=gc)) + 
+    geom_density() +
+    theme_bw() +
+    facet_grid(cols=vars(loop_number),rows=vars(experiment),scale='free_y') + 
+    ggtitle(group)+
+        scale_color_viridis( discrete = T)
+
+  print(p)
+}
+
+
+```
+

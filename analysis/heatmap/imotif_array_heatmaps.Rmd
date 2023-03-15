@@ -1,0 +1,119 @@
+---
+title: "imotif analysis:  making heatmap with selected proteins/experiments"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    pdf_print: paged
+    toc: yes
+    toc_depth: '3'
+    code_folding: hide
+
+---
+
+# Libraries
+
+```{r}
+
+suppressPackageStartupMessages(library(ComplexHeatmap))
+suppressPackageStartupMessages(library(circlize))
+library(RColorBrewer)
+```
+
+
+# read data
+
+```{r}
+myfile<-'../data/imotif_array_v2.median_SNR.avg_reps.tab'
+all_data<-read.csv(myfile,sep="\t")
+```
+
+# plot heatmap, selected data
+
+```{r fig.height=8, fig.width=5}
+
+mycolors<-RColorBrewer::brewer.pal(10,"Set3")
+names(mycolors) <- sort(unique(all_data$SeqClass))
+data_mat<-as.matrix(all_data[,c(3:ncol(all_data))])
+
+selected<-c("iMab100nM_6.5_40","Mx2nM_6.5_40","hnRNPK","hnRNPLL","hnRNPA1",	"ASF")
+data_mat<-data_mat[,selected]
+
+colnames(data_mat)[1:2]<-c('iMab','Mitoxantrone')
+rownames(data_mat)<-all_data$New_ID
+scaled_data<-scale(data_mat)
+
+
+
+col_fun = colorRamp2(c(-3, 0, 3), c("blue","white", "red"))
+
+row_ha = rowAnnotation(Sequence_class=all_data$SeqClass,
+                       col=list(Sequence_class=mycolors)
+)
+
+Heatmap(scaled_data, 
+        cluster_rows = T, 
+        cluster_columns = T, 
+        name="Zscore", 
+        show_column_dend = T , 
+        show_row_dend = F, 
+        show_column_names = T , 
+        show_row_names =F,  
+        right_annotation = row_ha,
+        column_title ="", 
+        col = col_fun,
+        row_title_rot = 0)
+
+pdf("figs/all_data_combined_avg_reps.scaled.rowsplit.heatmap.SELECTED.pdf", width = 5, height=8)
+
+Heatmap(scaled_data, 
+        cluster_rows = T, 
+        cluster_columns = T, 
+        name="Zscore", 
+        show_column_dend = T , 
+        show_row_dend = F, 
+        show_column_names = T , 
+        show_row_names =F,  
+        right_annotation = row_ha,
+        column_title ="", 
+        col = col_fun,
+        row_title_rot = 0)
+dev.off()
+```
+
+# heatmap scaled data, with row-split, selected experiments
+
+```{r fig.height=8, fig.width=5}
+pdf("figs/all_data_combined_avg_reps.scaled.rowsplit.heatmap.SELECTED.pdf", width = 5, height=8)
+Heatmap(scaled_data, 
+        cluster_rows = T, 
+        cluster_columns = T, 
+        name="Zscore", 
+        show_column_dend = T , 
+        show_row_dend = F, 
+        show_column_names = T , 
+        show_row_names =F,  
+        right_annotation = row_ha,
+        row_split = all_data$SeqClass,
+        column_title ="", 
+        col = col_fun,
+        row_title_gp=gpar(fontsize=8),
+        row_title_rot = 0)
+
+dev.off()
+
+Heatmap(scaled_data, 
+        cluster_rows = T, 
+        cluster_columns = T, 
+        name="Zscore", 
+        show_column_dend = T , 
+        show_row_dend = F, 
+        show_column_names = T , 
+        show_row_names =F,  
+        right_annotation = row_ha,
+        row_split = all_data$SeqClass,
+        column_title ="", 
+        col = col_fun,
+        row_title_gp=gpar(fontsize=8),
+        row_title_rot = 0)
+```
+```

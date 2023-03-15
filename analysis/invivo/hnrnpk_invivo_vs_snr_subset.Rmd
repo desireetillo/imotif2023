@@ -1,0 +1,178 @@
+---
+title: "hnrnpk ChIPseq vs SNR - Cs ONLY"
+author: "Des"
+date: "`r Sys.Date()`"
+output:
+ html_document:
+    pdf_print: paged
+    toc: yes
+    toc_depth: '3'
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+
+# background/motivation
+
+-  examine relationship between *in vitro* (i-Motif array SNR) binding and *in vivo* binding (ChIP-seq read density) of i-Motif probe sequences
+-   for each i-Motif probe sequence, compute a score representing the binding of HNRPNK *in vivo* - in this case we use the maximum (or mean) read density observed across all ChIP-seq peaks containing the probe sequence
+
+- keep in mind:  we're comparing double stranded (ChIP-seq) vs. single-stranded (array) data, so perhaps just focus on C's only
+
+```{r loadlibraries}
+library(dplyr)
+library(purrr)
+library(readr)
+library(ggplot2)
+
+```
+
+```{r loaddata}
+file<-'counts/iMotif_array_v2_HNRNPK_motif_analysis.invivo_scores.tsv'
+data<-read.csv(file, sep='\t')
+glimpse(data)
+
+data<-data[data$hg38_occurrences >0,]
+data<-data[grep("Cs",data$SeqClass),]
+data1<-data[data$count.HNRNPK_HepG2.ENCFF035OPG.merged>0, c('UniqueID','SeqClass','hnRNPK_rep','HNRNPK_HepG2.ENCFF035OPG.merged.max_peak_score','HNRNPK_HepG2.ENCFF035OPG.merged.mean_peak_score')]
+names(data1)<-c('UniqueID','SeqClass','Array_SNR','max_peak_read_density','mean_peak_read_density')
+
+
+
+data1$Exp<-'HNRNPK_HepG2'
+data2<-data[data$count.HNRNPK_K562.ENCFF505RNR.merged>0,c('UniqueID','SeqClass','hnRNPK_rep','HNRNPK_K562.ENCFF505RNR.merged.max_peak_score','HNRNPK_K562.ENCFF505RNR.merged.mean_peak_score')]
+names(data2)<-c('UniqueID','SeqClass','Array_SNR','max_peak_read_density','mean_peak_read_density')
+data2$Exp<-'HNRNPK_K562'
+cdata<-rbind(data1,data2)
+
+```
+
+# SNR vs max chipseq score, faceted
+```{r maxscore}
+
+
+ggplot(data=cdata,aes(x=Array_SNR,y=max_peak_read_density))+ 
+  facet_grid(cols=vars(Exp),scales='free_y') +
+  geom_point(alpha=0.5) + 
+  theme_bw() +
+  ggpubr::stat_cor(method = "pearson", label.x = 30,label.y=400,show.legend = FALSE) +
+  theme(aspect.ratio=1)
+
+```
+
+# SNR vs mean chipseq score faceted
+
+```{r meanscore}
+
+
+ggplot(data=cdata,aes(x=Array_SNR,y=mean_peak_read_density))+ 
+  facet_grid(cols=vars(Exp),scales='free_y') +
+  geom_point(alpha=0.5) + 
+  theme_bw() +
+  ggpubr::stat_cor(method = "pearson", label.x = 30,label.y=400,show.legend = FALSE) +
+  theme(aspect.ratio=1)
+
+```
+
+
+# SNR vs max score, not faceted
+
+```{r maxscore_nf, fig.height=4}
+
+
+ggplot(data=data1,aes(x=Array_SNR,y=max_peak_read_density))+ 
+  geom_point(alpha=0.5) + 
+  theme_bw() +
+  ggpubr::stat_cor(method = "pearson", label.x = 30,label.y=400,show.legend = FALSE) +
+  theme(aspect.ratio=1) + 
+  ylab('Max read density, HepG2') +
+  xlab('Array SNR')
+
+
+ggplot(data=data2,aes(x=Array_SNR,y=max_peak_read_density))+ 
+  geom_point(alpha=0.5) + 
+  theme_bw() +
+  ggpubr::stat_cor(method = "pearson", label.x = 30,label.y=400,show.legend = FALSE) +
+  theme(aspect.ratio=1) + 
+  ylab('Max read density, K562') +
+  xlab('Array SNR')
+
+```
+
+# SNR vs mean score, not faceted
+
+```{r meanscore_nf, fig.height=4}
+
+
+ggplot(data=data1,aes(x=Array_SNR,y=mean_peak_read_density))+ 
+  geom_point(alpha=0.5) + 
+  theme_bw() +
+  ggpubr::stat_cor(method = "pearson", label.x = 30,label.y=400,show.legend = FALSE) +
+  theme(aspect.ratio=1) + 
+  ylab('Mean read density, HepG2') +
+  xlab('Array SNR')
+
+
+ggplot(data=data2,aes(x=Array_SNR,y=mean_peak_read_density))+ 
+  geom_point(alpha=0.5) + 
+  theme_bw() +
+  ggpubr::stat_cor(method = "pearson", label.x = 30,label.y=400,show.legend = FALSE) +
+  theme(aspect.ratio=1) + 
+  ylab('Mean read density, K562') +
+  xlab('Array SNR')
+
+```
+
+# max peak read density, separated by sequence class
+
+```{r maxscore_seq, fig.height=8,fig.width=8}
+
+ggplot(data=data1,aes(x=Array_SNR,y=max_peak_read_density,color=SeqClass))+ 
+  geom_point(alpha=0.5) + 
+  theme_bw() +
+  facet_wrap(~SeqClass, nrow=1) + 
+  ylab('Max read density, HepG2') +
+  xlab('Array SNR')+
+  theme(aspect.ratio=1) + 
+  ggpubr::stat_cor(aes(label = after_stat(r.label)), label.x = 35,label.y=275,show.legend = FALSE) 
+
+
+ggplot(data=data2,aes(x=Array_SNR,y=max_peak_read_density,color=SeqClass))+ 
+  geom_point(alpha=0.5) + 
+  theme_bw() +
+  facet_wrap(~SeqClass, nrow=1) + 
+  ylab('Max read density, K562') +
+  xlab('Array SNR')+
+  theme(aspect.ratio=1) + 
+
+  ggpubr::stat_cor(aes(label = after_stat(r.label)), label.x = 35,label.y=350,show.legend = FALSE) 
+
+```
+
+# mean peak read density, separated by sequence class
+```{r meanscore_seq, fig.height=8,fig.width=8}
+
+ggplot(data=data1,aes(x=Array_SNR,y=mean_peak_read_density,color=SeqClass))+ 
+  geom_point(alpha=0.5) + 
+  theme_bw() +
+  facet_wrap(~SeqClass, nrow=1) + 
+  ylab('Mean read density, HepG2') +
+  xlab('Array SNR')+
+  theme(aspect.ratio=1) + 
+  ggpubr::stat_cor(aes(label = after_stat(r.label)), label.x = 30,label.y=200,show.legend = FALSE) 
+
+
+
+
+ggplot(data=data2,aes(x=Array_SNR,y=mean_peak_read_density,color=SeqClass))+ 
+  geom_point(alpha=0.5) + 
+  theme_bw() +
+  facet_wrap(~SeqClass, nrow=1) + 
+  ylab('Mean read density, K562') +
+  xlab('Array SNR')+
+  theme(aspect.ratio=1) + 
+  ggpubr::stat_cor(aes(label = after_stat(r.label)), label.x = 30,label.y=350,show.legend = FALSE) 
+
+```

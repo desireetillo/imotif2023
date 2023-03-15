@@ -1,0 +1,153 @@
+---
+title: "imotif analysis:  combine data"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    pdf_print: paged
+    toc: yes
+    toc_depth: '3'
+---
+
+# Libraries
+
+```{r}
+library(dplyr)
+library(purrr)
+library(readr)
+```
+
+This code will combine all processed data files into a single tab-delimited text file
+* iMab data: 0 signal for half of array
+* Mitoxanthrone - low SNR for []s >6.1
+
+# read in data, select medians
+
+## iMab
+```{r}
+data_path<-'processed'
+files<-dir(data_path, pattern = "*XDR_May14_2.summarized.csv", full.names = T)
+data<-files %>% 
+  map_dfc(read_csv)
+
+names(data)[c(1,2)]<-c('New_ID','SeqClass')
+
+files<-dir(data_path, pattern = "*.New_iMab_Array.summarized.csv", full.names = T)
+data<-files %>% 
+  map_dfc(read_csv)
+  
+names(data)[c(1,2)]<-c('New_ID','SeqClass')
+
+idata <- data %>% select(New_ID, SeqClass, contains("SNR.635_Median"))
+colnames(idata) <- gsub(".New_iMab_Array.SNR.635_Median", "", colnames(idata))
+colnames(idata) <- gsub("block.1","iMab100nM_5.5_40",colnames(idata))
+colnames(idata) <- gsub("block.2","iMab10nM_5.5_40",colnames(idata))
+colnames(idata) <- gsub("block.3","iMab100nM_6.5_40",colnames(idata))
+colnames(idata) <- gsub("block.4","iMab10nM_6.5_40",colnames(idata))
+colnames(idata) <- gsub("block.5","iMab100nM_7.5_40",colnames(idata))
+colnames(idata) <- gsub("block.6","iMab10nM_7.5_40",colnames(idata))
+colnames(idata) <- gsub("block.7","iMab100nM_6.5_5",colnames(idata))
+colnames(idata) <- gsub("block.8","iMab10nM_6.5_5",colnames(idata))
+
+idata<-idata[,c(1,2,3,5,7,9)]
+glimpse(idata)
+```
+
+
+## Mitoxanthrone
+
+```{r}
+files<-dir(data_path, pattern = "*Mitoxantrone_Array.summarized.csv", full.names = T)
+data<-files %>% 
+  map_dfc(read_csv)
+  
+names(data)[c(1,2)]<-c('New_ID','SeqClass')
+
+mdata <- data %>% select(New_ID, SeqClass, contains("SNR.635_Median"))
+
+colnames(mdata) <- gsub(".Mitoxantrone_Array.SNR.635_Median", "", colnames(mdata))
+colnames(mdata) <- gsub("block.1","Mx0.7nM_6.5_40",colnames(mdata))
+colnames(mdata) <- gsub("block.2","Mx0.23nM_6.5_40",colnames(mdata))
+colnames(mdata) <- gsub("block.3","Mx6.1nM_6.5_40",colnames(mdata))
+colnames(mdata) <- gsub("block.4","Mx2nM_6.5_40",colnames(mdata))
+colnames(mdata) <- gsub("block.5","Mx55.5nM_6.5_40",colnames(mdata))
+colnames(mdata) <- gsub("block.6","Mx18.5nM_6.5_40",colnames(mdata))
+colnames(mdata) <- gsub("block.7","Mx500nM_6.5_40",colnames(mdata))
+colnames(mdata) <- gsub("block.8","Mx166nM_6.5_40",colnames(mdata))
+
+xdata<-mdata[,c(1,2,4,3,6,5,7)]
+glimpse(xdata)
+
+```
+
+## hnrpk data
+```{r}
+data_path<-'processed'
+files<-dir(data_path, pattern = "*.hnRNPK_Dose_Response.summarized.csv", full.names = T)
+data<-files %>% 
+  map_dfc(read_csv)
+  
+names(data)[c(1,2)]<-c('New_ID','SeqClass')
+
+mdata <- data %>% select(New_ID, SeqClass, contains("SNR.635_Median"))
+colnames(mdata) <- gsub(".hnRNPK_Dose_Response.SNR.635_Median", "", colnames(mdata))
+colnames(mdata) <- gsub("block.1","hnRNPK_200nM",colnames(mdata))
+colnames(mdata) <- gsub("block.2","hnRNPK_100nM",colnames(mdata))
+colnames(mdata) <- gsub("block.3","hnRNPK_600nM",colnames(mdata))
+colnames(mdata) <- gsub("block.4","hnRNPK_400nM",colnames(mdata))
+colnames(mdata) <- gsub("block.5","hnRNPK_1uM",colnames(mdata))
+colnames(mdata) <- gsub("block.6","hnRNPK_800nM",colnames(mdata))
+colnames(mdata) <- gsub("block.7","hnRNPK_2uM",colnames(mdata))
+colnames(mdata) <- gsub("block.8","hnRNPK_1.5uM",colnames(mdata))
+
+kdata<-mdata[,c(1,2,4,3,6,5,8,7,10,9)]
+```
+
+
+
+
+## 4protein
+```{r}
+files<-dir(data_path, pattern = "*.4_Protein_Array_Extracted_Data.summarized.csv", full.names = T)
+data<-files %>% 
+  map_dfc(read_csv)
+  
+names(data)[c(1,2)]<-c('New_ID','SeqClass')
+
+mdata <- data %>% select(New_ID, SeqClass, contains("SNR.635_Median"))
+colnames(mdata) <- gsub(".4_Protein_Array_Extracted_Data.SNR.635_Median", "", colnames(mdata))
+colnames(mdata) <- gsub("block.1","hnRNPK_rep2",colnames(mdata))
+colnames(mdata) <- gsub("block.2","hnRNPK_rep1",colnames(mdata))
+colnames(mdata) <- gsub("block.3","hnRNPLL_rep2",colnames(mdata))
+colnames(mdata) <- gsub("block.4","hnRNPLL_rep1",colnames(mdata))
+colnames(mdata) <- gsub("block.5","hnRNPA1_rep2",colnames(mdata))
+colnames(mdata) <- gsub("block.6","hnRNPA1_rep1",colnames(mdata))
+colnames(mdata) <- gsub("block.7","ASF_rep2",colnames(mdata))
+colnames(mdata) <- gsub("block.8","ASF_rep1",colnames(mdata))
+
+
+fdata<-mdata[,c(1,2,4,3,6,5,10,9,7,8)]
+```
+
+
+## Average protein replicates, join data, write to file
+
+```{r}
+
+
+proteins<-c("hnRNPK_rep","hnRNPLL_rep","hnRNPA1_rep","ASF_rep")
+new_fdata<-fdata[,c(1,2)]
+for( s in proteins){
+  inds<-grep(s,colnames(fdata))
+  print(inds)
+  new_fdata[,s]<-rowMeans(fdata[,inds],na.rm=T)
+}
+
+names(new_fdata) <- gsub("_rep","",names(new_fdata))
+all_data<-left_join(idata,xdata,by=c("New_ID","SeqClass"))
+
+all_data<-left_join(all_data,kdata,by=c("New_ID","SeqClass"))
+all_data<-left_join(all_data,new_fdata,by=c("New_ID","SeqClass"))
+
+write.table(all_data,file="imotif_array_v2.median_SNR.avg_reps.tab",sep="\t", row.names = F,quote=F)
+
+```

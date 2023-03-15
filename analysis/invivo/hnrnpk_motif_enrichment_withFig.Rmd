@@ -1,0 +1,276 @@
+---
+title: "HNRNPK motif enrichment"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '5'
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+
+# Analysis question:
+
+Are array-bound sequences also bound *in vivo*?
+
+* See if highly bound sequences are enriched in ChIP-seq peaks
+* hnRNPK ChIP-seq in HepG2 and K562 cells (from ENCODE project PMID: 32728246)
+
+
+```{r loadlibraries}
+library(dplyr)
+library(purrr)
+library(readr)
+```
+
+```{r loaddata}
+file<-'counts/iMotif_array_v2_HNRNPK_motif_analysis.tsv'
+data<-read.csv(file, sep='\t')
+#glimpse(data)
+
+# remove data without any occurrences in hg38
+data<-data[data$hg38_occurrences >0,]
+
+chiplen<-read.table('counts/seq_lengths.tsv',sep='\t',  col.names=c('sample','length'))
+rownames(chiplen)<-chiplen$sample
+rownames(chiplen)<-gsub('seq/','',rownames(chiplen))
+rownames(chiplen)<-gsub('.stab','',rownames(chiplen))
+
+#chiplen
+
+```
+
+## Enrichment metrics
+
+Scan imotif probe sequence in hnRNPK peaks from these two cell lines
+
+
+Two metrics:
+
+1.  fraction of motif occurrences in a ChIP-seq peak (count_in_peak/hg38 occurrences)
+2.  Enrichment score (He et al., GBE 2015): For each i-motif, we compute the observed occurrences $OCC_{obs}$ of each imotif in the ChIP-seq peaks. The expected occurrence, $OCC_{exp}$ is computed as:
+
+$$OCC_{exp}=N\times\frac{L_r}{L_g},$$
+
+where N is the number of occurrences in the genome, $L_r$ is the length of the observed regions, and $L_g$ is the length of the genome. Next, we compute an enrichment score, $E=\frac{OCC_{obs}}{OCC_{exp}}$. The significance of the enrichment is computed using a chi-squared test, and FDR adjusted p-values computed using the Benjamini-Hochberg method.
+
+```{r enrichment}
+
+data$frac.HNRNPK_HepG2<-data$count.HNRNPK_HepG2.ENCFF035OPG.merged / data$hg38_occurrences 
+data$frac.HNRNPK_K562<-data$count.HNRNPK_K562.ENCFF505RNR.merged / data$hg38_occurrences 
+
+data$Exp.HNRNPK_HepG2<-data$hg38_occurrences * (chiplen['HNRNPK_HepG2.ENCFF035OPG.merged',]$length/chiplen['hg38',]$length)
+data$Exp.HNRNPK_K562<-data$hg38_occurrences * (chiplen['HNRNPK_K562.ENCFF505RNR.merged',]$length/chiplen['hg38',]$length)
+
+data$Enrich.HNRNPK_HepG2 <- (data$count.HNRNPK_HepG2.ENCFF035OPG.merged) / (data$Exp.HNRNPK_HepG2)
+data$Enrich.HNRNPK_K562 <-(data$count.HNRNPK_K562.ENCFF505RNR.merged) / (data$Exp.HNRNPK_K562)
+
+peak_length<-chiplen['HNRNPK_HepG2.ENCFF035OPG.merged',]$length
+genome_length<-chiplen['hg38',]$length
+
+
+pvals<-matrix(0,nrow=(nrow(data)),ncol = 1)
+colnames(pvals)<-'pvals.HNRNPK_HepG2'
+
+
+adjpvals<-matrix(0,nrow=(nrow(data)),ncol = 1)
+
+for ( g  in 1:nrow(data)){
+  peak_occurrence<-data$count.HNRNPK_HepG2.ENCFF035OPG.merged[g]
+  genome_occurrence<-data$hg38_occurrences[g]
+  
+
+  mytable<-matrix(c(peak_occurrence, genome_occurrence,peak_length-peak_occurrence,genome_length-genome_occurrence),ncol=2)
+  xx<-chisq.test(mytable)
+  pvals[g]<-xx$p.value
+}
+adjpvals<-p.adjust(pvals,method="BH")
+
+pvals2<-matrix(0,nrow=(nrow(data)),ncol = 1)
+colnames(pvals2)<-'pvals.HNRNPK_K562'
+
+adjpvals2<-matrix(0,nrow=(nrow(data)),ncol = 1)
+
+
+peak_length<-chiplen['HNRNPK_K562.ENCFF505RNR.merged',]$length
+genome_length<-chiplen['hg38',]$length
+
+for ( g  in 1:nrow(data)){
+  peak_occurrence<-data$count.HNRNPK_K562.ENCFF505RNR.merged[g]
+  genome_occurrence<-data$hg38_occurrences[g]
+  mytable<-matrix(c(peak_occurrence, genome_occurrence,peak_length-peak_occurrence,genome_length-genome_occurrence),ncol=2)
+  xx<-chisq.test(mytable)
+  pvals2[g]<-xx$p.value
+}
+adjpvals2<-p.adjust(pvals2,method="BH")
+
+data<-cbind(data,pvals,adjpvals,pvals2,adjpvals2)
+data<- data %>% 
+  rename(adjpvals.HNRNPK_HepG2 = adjpvals,
+        adjpvals.HNRNPK_K562 = adjpvals2
+    )
+
+write.table(data,"iMotif_array_v2_HNRNPK_motif_analysis.enrichment_scores.tab", sep="\t", row.names=F, quote=F)
+
+```
+
+## Data summary
+
+```{r summary, fig.height=10}
+
+mysubset<-data[,c('UniqueID', 'TrimmedSeq_rev', 'hnRNPK_rep','frac.HNRNPK_HepG2','Enrich.HNRNPK_HepG2','adjpvals.HNRNPK_HepG2','frac.HNRNPK_K562','Enrich.HNRNPK_K562','adjpvals.HNRNPK_K562')]
+
+mysubset[is.na(mysubset)] <-0
+
+mysubset<- mysubset %>% 
+  rename('Sequence' = 'TrimmedSeq_rev',
+        'adjP.HNRNPK_HepG2' = 'adjpvals.HNRNPK_HepG2',
+        'adjP.HNRNPK_K562'='adjpvals.HNRNPK_K562')
+
+mysubset %>% 
+  DT::datatable(rownames = F)%>% 
+  DT::formatRound(columns=c('Enrich.HNRNPK_HepG2','Enrich.HNRNPK_K562','frac.HNRNPK_HepG2','frac.HNRNPK_K562','adjP.HNRNPK_HepG2','adjP.HNRNPK_K562'), digits=2)
+
+
+```
+
+## Enrichment summary
+What proportion of well-bound sequences on the array are significantly enriched (adjP\<0.05) in ChIP-seq peaks?
+
+```{r summaryBySNR, fig.height=10}
+
+nHepG2<- length(which(mysubset$adjP.HNRNPK_HepG2<0.05))
+nK562 <- length(which(mysubset$adjP.HNRNPK_K562<0.05))
+
+cutoffs<-seq(5,40,5)
+num_sig <- data.frame(SNR_Threshold = paste0(">",cutoffs))
+num_sig$SNR_Threshold <-factor(num_sig$SNR_Threshold, levels=c(paste0(">",cutoffs)))
+
+print(paste0("Num significantly enriched seqs HepG2: ", nHepG2))
+print(paste0("Num significantly enriched seqs K562: ", nK562))
+
+
+
+num_sig$ArraySeq <-
+  unlist(lapply(cutoffs,
+                function(x) {
+                  length(which(mysubset$hnRNPK_rep > x))
+                  }
+                )
+         )
+
+
+num_sig$HepG2_sig <-
+  unlist(lapply(cutoffs,
+                function(x) {
+                  length(which(mysubset$hnRNPK_rep > x & mysubset$adjP.HNRNPK_HepG2<0.05))
+                  }
+                )
+         )
+
+
+
+
+num_sig$HepG2_prct<-paste0(round(num_sig$HepG2_sig / num_sig$ArraySeq*100,2),"%")
+
+# Is proportion significant?
+# compute hypergeometric pvalue
+# phyper(q, m, n, k, lower.tail = FALSE, log.p = FALSE)
+#  q = well bound and sig. enriched in vivo -1
+#  m = number of enriched sequences
+#  n = array sequences - not enriched in vivo
+#  k = sample size:  well bound sequences
+#  use:  lower.tail=FALSE:  if TRUE (default), probabilities are P[X <= x], otherwise, P[X > x]
+
+
+num_sig$HepG2_hgPval <-
+  unlist(lapply(cutoffs,
+                function(x) {
+                  phyper(length(which(mysubset$hnRNPK_rep > x & mysubset$adjP.HNRNPK_HepG2<0.05))-1, 
+                         nHepG2,
+                         nrow(mysubset)-nHepG2,
+                         length(which(mysubset$hnRNPK_rep > x)),
+                         lower.tail=FALSE)
+                  }
+                )
+         )
+
+num_sig$K562_sig <-
+  unlist(lapply(cutoffs,
+                function(x) {
+                  length(which(mysubset$hnRNPK_rep > x & mysubset$adjP.HNRNPK_K562<0.05))
+                  }
+                )
+         )
+
+num_sig$K562_prct<-paste0(round(num_sig$K562_sig / num_sig$ArraySeq * 100,2),"%")
+
+
+num_sig$K562_hgPval <-
+  unlist(lapply(cutoffs,
+                function(x) {
+                  phyper(length(which(mysubset$hnRNPK_rep > x & mysubset$adjP.HNRNPK_K562<0.05))-1,
+                         nK562,
+                         nrow(mysubset)-nK562,
+                         length(which(mysubset$hnRNPK_rep > x)),
+                         lower.tail=FALSE)
+                  }
+                )
+         )
+
+num_sig %>%
+DT::datatable(
+              rownames = F,
+              options = list(
+            columnDefs = list(list(className = 'dt-center', targets = 0:3))
+            )
+          ) %>%
+DT::formatSignif(columns = c('HepG2_hgPval', 'K562_hgPval'), digits = 3)
+```
+
+
+## Enrichment summary -- figure
+```{r fig.height=5, fig.width=10}
+library(tidyverse)
+library(viridis)
+
+# plot hepG2
+pdata<-num_sig[,c(1:3,6)]
+pdata$HepG2_nsig<-pdata$ArraySeq-pdata$HepG2_sig
+pdata$K562_nsig<-pdata$ArraySeq-pdata$K562_sig
+
+lpdata<-pivot_longer(pdata,cols=c(3:ncol(pdata)),names_to =c("Enrichment"),values_to="Count")
+lpdata <- separate_wider_delim(lpdata, Enrichment, "_", names=c("CellType","Enrichment"))
+lpdata$Enrichment <- gsub("nsig","Not enriched",lpdata$Enrichment)
+lpdata$Enrichment <- gsub("sig","Enriched",lpdata$Enrichment)
+lpdata$Enrichment <-factor(lpdata$Enrichment, levels=c("Not enriched","Enriched"))
+
+
+
+ggplot(lpdata, aes(fill=Enrichment,x=SNR_Threshold, y=Count)) + 
+  geom_bar(position="stack", stat="identity") + 
+  theme_bw() +
+  scale_fill_manual(values=c("#00AFBB","#E7B800")) +
+  facet_grid(cols=vars(CellType)) +
+  ylab("Count") +
+  labs(fill="Enrichment in ChIP-seq peak") + 
+  xlab("SNR threshold")
+
+ggsave("figs/imotif_invivo_enrichment.bar.count.pdf")
+
+ggplot(lpdata, aes(fill=Enrichment,x=SNR_Threshold, y=Count)) + 
+  geom_bar(position="fill", stat="identity") + 
+  theme_bw() +
+  scale_fill_manual(values=c("#00AFBB","#E7B800")) +
+  scale_y_continuous(labels = scales::percent) + 
+  facet_grid(cols=vars(CellType)) +
+  ylab("%") +
+  labs(fill="Enrichment in ChIP-seq peak") + 
+  xlab("SNR threshold")
+
+ggsave("figs/imotif_invivo_enrichment.bar.prct.pdf")
+```
