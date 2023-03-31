@@ -14,6 +14,8 @@ output:
 library(dplyr)
 library(purrr)
 library(readr)
+data_path<-'processed'
+
 ```
 
 This code will combine all processed data files into a single tab-delimited text file
@@ -24,13 +26,6 @@ This code will combine all processed data files into a single tab-delimited text
 
 ## iMab
 ```{r}
-data_path<-'processed'
-files<-dir(data_path, pattern = "*XDR_May14_2.summarized.csv", full.names = T)
-data<-files %>% 
-  map_dfc(read_csv)
-
-names(data)[c(1,2)]<-c('New_ID','SeqClass')
-
 files<-dir(data_path, pattern = "*.New_iMab_Array.summarized.csv", full.names = T)
 data<-files %>% 
   map_dfc(read_csv)
@@ -81,7 +76,6 @@ glimpse(xdata)
 
 ## hnrpk data
 ```{r}
-data_path<-'processed'
 files<-dir(data_path, pattern = "*.hnRNPK_Dose_Response.summarized.csv", full.names = T)
 data<-files %>% 
   map_dfc(read_csv)
@@ -132,8 +126,6 @@ fdata<-mdata[,c(1,2,4,3,6,5,10,9,7,8)]
 ## Average protein replicates, join data, write to file
 
 ```{r}
-
-
 proteins<-c("hnRNPK_rep","hnRNPLL_rep","hnRNPA1_rep","ASF_rep")
 new_fdata<-fdata[,c(1,2)]
 for( s in proteins){
