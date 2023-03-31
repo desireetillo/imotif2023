@@ -7,10 +7,6 @@ output:
     toc: yes
     toc_depth: '3'
     code_folding: hide
-  html_notebook:
-    toc: yes
-    toc_depth: '3'
-    code_folding: hide
 ---
 
 # Libraries
