@@ -2,9 +2,9 @@
 
 ## About
 
-This repo contains code for processing raw iMotif array data as well as analysis code used in the manuscript "Genomic i-Motifs Display Diverse Binding Preferences Towards Small Molecules, Transcription Factors, and Antibodies" by Yadzani, Seshadri et al., 202x.
+This repository contains code for processing raw iMotif array data as well as analysis code used in the manuscript "Decoding Complexity in Biomolecular Recognition of DNA i-Motifs with Microarrays" by Yadzani, Seshadri et al.
 
 ## Contents
 
--   processing/: contains code for processing array scan outputfrom MPix
+-   processing/: contains code for processing Agilent Feature Extraction Software array scan output
 -   analysis/: contains Rmarkdown code for analyses in found in the manuscript
