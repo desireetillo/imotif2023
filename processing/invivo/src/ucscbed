@@ -1,0 +1,15 @@
+#!/usr/bin/perl
+use strict;
+
+
+while(my $line = <STDIN>){
+    chomp $line;
+    my ($info, @etc) =split(/\t/, $line);
+    $info =~ s/\:/\t/;
+    $info =~ s/\-/\t/;
+    if(@etc){
+	print "$info\t", join("\t", @etc), "\n";
+    }
+    else { print $info, "\n";}
+}
+

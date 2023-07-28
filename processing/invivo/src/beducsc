@@ -1,0 +1,9 @@
+#!/usr/bin/perl
+use strict;
+
+
+while(my $line = <STDIN>){
+    chomp $line;
+    my ($chr, $start, $end, @etc) = split(/\t/, $line);
+    print "$chr\:$start\-$end\t", join("\t", @etc), "\n";
+}

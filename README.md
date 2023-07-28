@@ -6,5 +6,5 @@ This repository contains code for processing raw i-Motif array data as well as a
 
 ## Contents
 
--   processing/: contains code for processing Agilent Feature Extraction Software array scan output
+-   processing/: contains code for processing Agilent Feature Extraction Software array scan output and ENCODE bed files for motif analysis
 -   analysis/: contains Rmarkdown code for analyses in found in the manuscript
