@@ -2,7 +2,7 @@
 
 ## About
 
-This repository contains code for processing raw i-Motif array data as well as analysis code used in the manuscript "Decoding Complexity in Biomolecular Recognition of DNA i-Motifs with Microarrays" by Yadzani, Seshadri et al. [Preprint](https://www.biorxiv.org/content/10.1101/2023.04.19.537548v1)
+This repository contains code for processing raw i-Motif array data as well as analysis code used in the manuscript "Decoding Complexity in Biomolecular Recognition of DNA i-Motifs with Microarrays" by Yadzani, Seshadri, Tillo et al. [Link to manuscript](https://doi.org/10.1093/nar/gkad981)
 
 ## Contents
 
